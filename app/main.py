@@ -1,14 +1,13 @@
+# app/main.py
 from fastapi import FastAPI
-from app.authentication.router import router as auth_router
-from app.files.router import router as files_router
 from tortoise.contrib.fastapi import register_tortoise
 from app.config import TORTOISE_ORM
 
+from app.authentication.api.router import router as auth_router
 
 app = FastAPI()
 
-app.include_router(auth_router, prefix="/authentication", tags=["Authentication"])
-app.include_router(files_router, prefix="/files", tags=["Files"])
+app.include_router(auth_router)
 
 register_tortoise(
     app,
