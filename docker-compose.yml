@@ -1,11 +1,9 @@
-version: '3.8'
-
 services:
   carlemany-backend:
     build:
       context: .
       target: carlemany-backend-base
-    image: carlemany-backend-base:latest  
+    image: carlemany-backend-base:latest
     volumes:
       - type: bind
         source: .
@@ -16,11 +14,13 @@ services:
       - carlemany-net
     depends_on:
       - db
+      - migrate
     env_file:
       - .env
 
   black:
     image: carlemany-backend-base:latest
+    profiles: ["devtools"]
     volumes:
       - type: bind
         source: ./
@@ -29,10 +29,11 @@ services:
     entrypoint: sh -c "black --config .black --check --diff ."
 
   test: &test
-    build: .                             
+    build: .
     image: carlemany-backend-dev:latest
+    profiles: ["devtools"]
     env_file:
-     - .env
+      - .env
     volumes:
       - type: bind
         source: ./
@@ -43,6 +44,7 @@ services:
 
   test-cov:
     <<: *test
+    profiles: ["devtools"]
     entrypoint: pytest --maxfail=10 --cov --cov-report=term --cov-report=html --junitxml=tests/test-results/junit.xml
 
   db:
@@ -51,26 +53,10 @@ services:
       POSTGRES_USER: ${SQL_DB_USER}
       POSTGRES_PASSWORD: ${SQL_DB_PASSWORD}
       POSTGRES_DB: ${SQL_DB_NAME}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - carlemany-net
-
-  make_migrations:
-    build: .
-    depends_on:
-      - db
-    environment:
-      SQL_DB_USER: ${SQL_DB_USER}
-      SQL_DB_PASSWORD: ${SQL_DB_PASSWORD}
-      SQL_DB_HOST: ${SQL_DB_HOST}
-      SQL_DB_PORT: ${SQL_DB_PORT}
-      SQL_DB_NAME: ${SQL_DB_NAME}
-    networks:
-      - carlemany-net
-    entrypoint: aerich migrate
 
   migrate:
     build: .
@@ -85,6 +71,21 @@ services:
     networks:
       - carlemany-net
     entrypoint: aerich upgrade
+
+  make_migrations:
+    build: .
+    profiles: ["devtools"]
+    depends_on:
+      - db
+    environment:
+      SQL_DB_USER: ${SQL_DB_USER}
+      SQL_DB_PASSWORD: ${SQL_DB_PASSWORD}
+      SQL_DB_HOST: ${SQL_DB_HOST}
+      SQL_DB_PORT: ${SQL_DB_PORT}
+      SQL_DB_NAME: ${SQL_DB_NAME}
+    networks:
+      - carlemany-net
+    entrypoint: aerich migrate
 
 networks:
   carlemany-net:
